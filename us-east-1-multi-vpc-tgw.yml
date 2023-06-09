@@ -159,6 +159,21 @@ Resources:
           FromPort: '80'
           ToPort: '80'
           CidrIp: '0.0.0.0/0'
+  #security group for EC2 resources in the sapre VPC
+  dmSecurityGroupspare:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: spare VPC- Security Group for all resources
+      VpcId: !Ref 'dmVPCspare'
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: '0.0.0.0/0'
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: '0.0.0.0/0'
 
   # We use this so we can limit access on this port to the SG
   dmSecurityGroupIngress:
@@ -341,7 +356,7 @@ Resources:
       BlockDeviceMappings:
         - DeviceName: /dev/xvda
           Ebs:
-            VolumeSize: '80'
+            VolumeSize: '4'
             DeleteOnTermination: 'true'
             VolumeType: gp2
       NetworkInterfaces:
@@ -350,6 +365,32 @@ Resources:
           GroupSet:
             - !Ref 'dmSecurityGroup'
           SubnetId: !Ref 'dmSubnet1'
+  #a spare vm in the spare VPC
+  dataSyncAgent1spare:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref dsAmi
+      InstanceType: t3.micro
+      IamInstanceProfile: !Ref 'dataSyncAgentInstanceProfile'
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - DataSyncAgent1spare-
+              - !Ref 'AWS::StackName'
+      InstanceInitiatedShutdownBehavior: stop
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: '12'
+            DeleteOnTermination: 'true'
+            VolumeType: gp2
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: 'true'
+          DeviceIndex: '0'
+          GroupSet:
+            - !Ref 'dmSecurityGroupspare'
+          SubnetId: !Ref 'dmSubnet1spare'
 
 Outputs:
   nfsServerPrivateIP:
