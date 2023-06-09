@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: AWS DataSync Workshop - NFS Small Files Migration - On-Premises Region
+Description: AWS DataSync Workshop - NFS Small Files Migration - On-Premises Region smgriffiths
 Metadata:
   License:
     Description: |
