@@ -154,9 +154,13 @@ Resources:
   TgwAttachmentId:
     Type: AWS::EC2::TransitGatewayAttachment
     Properties: 
-      SubnetIds: !Ref dmSubnet1
+      SubnetIds: 
+        - !Ref dmSubnet1
       TransitGatewayId: !Ref TransitGateway
       VpcId: !Ref dmVPC
+      Tags:
+        - Key: Name
+          Value: 'My Transit Gateway Attachemnt for first VPC'
   #Route for first VPC to TGW
   TgwRoute:
     Type: AWS::EC2::Route
@@ -169,9 +173,13 @@ Resources:
   TgwAttachmentIdspare:
     Type: AWS::EC2::TransitGatewayAttachment
     Properties: 
-      SubnetIds: !Ref dmSubnet1spare
+      SubnetIds: 
+        - !Ref dmSubnet1spare
       TransitGatewayId: !Ref TransitGateway
       VpcId: !Ref dmVPCspare
+      Tags:
+        - Key: Name
+          Value: 'My Transit Gateway Attachemnt for spare VPC'
   #Route for spare VPC to TGW
   TgwRoutespare:
     Type: AWS::EC2::Route
