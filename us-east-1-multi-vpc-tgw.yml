@@ -403,7 +403,7 @@ Resources:
       BlockDeviceMappings:
         - DeviceName: /dev/xvda
           Ebs:
-            VolumeSize: '4'
+            VolumeSize: '80'
             DeleteOnTermination: 'true'
             VolumeType: gp2
       NetworkInterfaces:
@@ -429,7 +429,7 @@ Resources:
       BlockDeviceMappings:
         - DeviceName: /dev/xvda
           Ebs:
-            VolumeSize: '12'
+            VolumeSize: '80'
             DeleteOnTermination: 'true'
             VolumeType: gp2
       NetworkInterfaces:
