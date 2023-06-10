@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Creates multiple VPCs with EC2 and Transit Gateway in US-EAST-1
+Description: Creates multiple VPCs with EC2 and Transit Gateway in US-EAST-1 hm
 Metadata:
   License:
     Description: |
