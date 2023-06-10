@@ -142,6 +142,45 @@ Resources:
       RouteTableId: !Ref 'dmRouteTablespare'
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref 'dmInternetGatewayspare'
+  #create a Transit Gateway
+  TransitGateway:
+    Type: "AWS::EC2::TransitGateway"
+    Properties:
+      Description: "Transit Gateway serves as a centralized outgoing gateway for networking traffic"
+      Tags:
+        - Key: Name
+          Value: 'My Transit Gateway'
+  #TransitGatewayAttachment for first VPC
+  TgwAttachmentId:
+    Type: AWS::EC2::TransitGatewayAttachment
+    Properties: 
+      SubnetIds: !Ref dmSubnet1
+      TransitGatewayId: !Ref TransitGateway
+      VpcId: !Ref dmVPC
+  #Route for first VPC to TGW
+  TgwRoute:
+    Type: AWS::EC2::Route
+    DependsOn: TgwAttachmentId
+    Properties:
+       RouteTableId: !Ref dmRouteTable
+       DestinationCidrBlock: 10.0.0.0/8
+       TransitGatewayId: !Ref TransitGateway 
+  #TransitGatewayAttachment for spare VPC
+  TgwAttachmentIdspare:
+    Type: AWS::EC2::TransitGatewayAttachment
+    Properties: 
+      SubnetIds: !Ref dmSubnet1spare
+      TransitGatewayId: !Ref TransitGateway
+      VpcId: !Ref dmVPCspare
+  #Route for spare VPC to TGW
+  TgwRoutespare:
+    Type: AWS::EC2::Route
+    DependsOn: TgwAttachmentIdspare
+    Properties:
+       RouteTableId: !Ref dmRouteTablespare
+       DestinationCidrBlock: 10.0.0.0/8
+       TransitGatewayId: !Ref TransitGateway 
+
   # We use the same security group for all four resources.  Technically port 80
   # isn't needed for the NFS server and the application server, but nothing is
   # listening on those ports on those servers.
