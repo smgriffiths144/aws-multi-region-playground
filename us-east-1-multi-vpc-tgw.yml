@@ -417,7 +417,7 @@ Resources:
     Type: AWS::EC2::Instance
     Properties:
       ImageId: !Ref dsAmi
-      InstanceType: t3.micro
+      InstanceType: t2.micro
       IamInstanceProfile: !Ref 'dataSyncAgentInstanceProfile'
       Tags:
         - Key: Name
