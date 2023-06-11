@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Creates multiple VPCs with EC2 and Transit Gateway in US-WEST-2
+Description: Creates multiple VPCs with EC2 and Transit Gateway in US-EAST-1 hm
 Metadata:
   License:
     Description: |
@@ -45,7 +45,7 @@ Resources:
   dmVPC:
     Type: AWS::EC2::VPC
     Properties:
-      CidrBlock: 10.10.14.0/24
+      CidrBlock: 10.12.14.0/24
       EnableDnsSupport: 'true'
       EnableDnsHostnames: 'true'
       InstanceTenancy: default
@@ -56,7 +56,7 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref 'dmVPC'
-      CidrBlock: 10.10.14.0/24
+      CidrBlock: 10.12.14.0/24
       MapPublicIpOnLaunch: 'True'
       Tags:
       - Key: Name
@@ -92,6 +92,103 @@ Resources:
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref 'dmInternetGateway'
 
+ # Create a spare VPC with internet connectivity
+  dmVPCspare:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.14.14.0/24
+      EnableDnsSupport: 'true'
+      EnableDnsHostnames: 'true'
+      InstanceTenancy: default
+      Tags:
+      - Key: Name
+        Value: DsSmallFilesNfsWorkshopVPC
+  dmSubnet1spare:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref 'dmVPCspare'
+      CidrBlock: 10.14.14.0/24
+      MapPublicIpOnLaunch: 'True'
+      Tags:
+      - Key: Name
+        Value: SpareSubnet1
+  dmInternetGatewayspare:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+      - Key: Name
+        Value: SpareVPCIGW
+  dmAttachGatewayspare:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref 'dmVPCspare'
+      InternetGatewayId: !Ref 'dmInternetGatewayspare'
+  dmRouteTablespare:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref 'dmVPCspare'
+      Tags:
+      - Key: Name
+        Value: SpareVPCRouteTable
+  dmSubnet1RouteAssociatonspare:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref 'dmSubnet1spare'
+      RouteTableId: !Ref 'dmRouteTablespare'
+  dmRoutetoInternetspare:
+    Type: AWS::EC2::Route
+    DependsOn: dmInternetGatewayspare
+    Properties:
+      RouteTableId: !Ref 'dmRouteTablespare'
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref 'dmInternetGatewayspare'
+  #create a Transit Gateway
+  TransitGateway:
+    Type: "AWS::EC2::TransitGateway"
+    Properties:
+      Description: "Transit Gateway serves as a centralized outgoing gateway for networking traffic"
+      Tags:
+        - Key: Name
+          Value: 'My Transit Gateway'
+  #TransitGatewayAttachment for first VPC
+  TgwAttachmentId:
+    Type: AWS::EC2::TransitGatewayAttachment
+    Properties: 
+      SubnetIds: 
+        - !Ref dmSubnet1
+      TransitGatewayId: !Ref TransitGateway
+      VpcId: !Ref dmVPC
+      Tags:
+        - Key: Name
+          Value: 'My Transit Gateway Attachemnt for first VPC'
+  #Route for first VPC to TGW
+  TgwRoute:
+    Type: AWS::EC2::Route
+    DependsOn: TgwAttachmentId
+    Properties:
+       RouteTableId: !Ref dmRouteTable
+       DestinationCidrBlock: 10.0.0.0/8
+       TransitGatewayId: !Ref TransitGateway 
+  #TransitGatewayAttachment for spare VPC
+  TgwAttachmentIdspare:
+    Type: AWS::EC2::TransitGatewayAttachment
+    Properties: 
+      SubnetIds: 
+        - !Ref dmSubnet1spare
+      TransitGatewayId: !Ref TransitGateway
+      VpcId: !Ref dmVPCspare
+      Tags:
+        - Key: Name
+          Value: 'My Transit Gateway Attachemnt for spare VPC'
+  #Route for spare VPC to TGW
+  TgwRoutespare:
+    Type: AWS::EC2::Route
+    DependsOn: TgwAttachmentIdspare
+    Properties:
+       RouteTableId: !Ref dmRouteTablespare
+       DestinationCidrBlock: 10.0.0.0/8
+       TransitGatewayId: !Ref TransitGateway 
+
   # We use the same security group for all four resources.  Technically port 80
   # isn't needed for the NFS server and the application server, but nothing is
   # listening on those ports on those servers.
@@ -109,6 +206,29 @@ Resources:
           FromPort: '80'
           ToPort: '80'
           CidrIp: '0.0.0.0/0'
+        - IpProtocol: icmp
+          FromPort: '-1'
+          ToPort: '-1'
+          CidrIp: '10.0.0.0/8'
+  #security group for EC2 resources in the sapre VPC
+  dmSecurityGroupspare:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: spare VPC- Security Group for all resources
+      VpcId: !Ref 'dmVPCspare'
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: '0.0.0.0/0'
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: '0.0.0.0/0'
+        - IpProtocol: icmp
+          FromPort: '-1'
+          ToPort: '-1'
+          CidrIp: '10.0.0.0/8'
 
   # We use this so we can limit access on this port to the SG
   dmSecurityGroupIngress:
@@ -195,7 +315,7 @@ Resources:
               command: !Sub "/opt/aws/bin/cfn-signal -e 0 --stack ${AWS::StackId} --resource nfsServer --region ${AWS::Region}"
     Properties:
       ImageId: !Ref linuxAmi
-      InstanceType: t3.micro
+      InstanceType: t2.micro
       IamInstanceProfile: !Ref 'nfsServerInstanceProfile'
       Tags:
         - Key: Name
@@ -279,7 +399,7 @@ Resources:
     Type: AWS::EC2::Instance
     Properties:
       ImageId: !Ref dsAmi
-      InstanceType: t3.micro
+      InstanceType: t2.micro
       IamInstanceProfile: !Ref 'dataSyncAgentInstanceProfile'
       Tags:
         - Key: Name
@@ -300,6 +420,32 @@ Resources:
           GroupSet:
             - !Ref 'dmSecurityGroup'
           SubnetId: !Ref 'dmSubnet1'
+  #a spare vm in the spare VPC
+  dataSyncAgent1spare:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref dsAmi
+      InstanceType: t2.micro
+      IamInstanceProfile: !Ref 'dataSyncAgentInstanceProfile'
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - DataSyncAgent1spare-
+              - !Ref 'AWS::StackName'
+      InstanceInitiatedShutdownBehavior: stop
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: '80'
+            DeleteOnTermination: 'true'
+            VolumeType: gp2
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: 'true'
+          DeviceIndex: '0'
+          GroupSet:
+            - !Ref 'dmSecurityGroupspare'
+          SubnetId: !Ref 'dmSubnet1spare'
 
 Outputs:
   nfsServerPrivateIP:
