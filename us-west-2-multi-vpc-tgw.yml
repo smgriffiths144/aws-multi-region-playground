@@ -315,7 +315,7 @@ Resources:
               command: !Sub "/opt/aws/bin/cfn-signal -e 0 --stack ${AWS::StackId} --resource nfsServer --region ${AWS::Region}"
     Properties:
       ImageId: !Ref linuxAmi
-      InstanceType: t2.micro
+      InstanceType: t3.micro
       IamInstanceProfile: !Ref 'nfsServerInstanceProfile'
       Tags:
         - Key: Name
@@ -399,7 +399,7 @@ Resources:
     Type: AWS::EC2::Instance
     Properties:
       ImageId: !Ref dsAmi
-      InstanceType: t2.micro
+      InstanceType: t3.micro
       IamInstanceProfile: !Ref 'dataSyncAgentInstanceProfile'
       Tags:
         - Key: Name
@@ -425,7 +425,7 @@ Resources:
     Type: AWS::EC2::Instance
     Properties:
       ImageId: !Ref dsAmi
-      InstanceType: t2.micro
+      InstanceType: t3.micro
       IamInstanceProfile: !Ref 'dataSyncAgentInstanceProfile'
       Tags:
         - Key: Name
